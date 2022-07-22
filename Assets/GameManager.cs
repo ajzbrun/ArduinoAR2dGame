@@ -15,16 +15,18 @@ public class GameManager : MonoBehaviour
 
     public GameObject gameOverObj;
     public GameObject meteorite;
+    public GameObject cloud;
     public GameObject player;
     Vector3 targetPosition;
 
     Coroutine spawner;
     Coroutine bonusBlinker;
+    bool blinking = false;
 
     public float gameSpeed = 1f;
 
     public GameObject bonusTxt;
-    int enemysAfterBonus = 4;
+    int enemysAfterBonus = 10;
     bool bonusAvailable = false;
     bool inBonus = false;
 
@@ -33,10 +35,11 @@ public class GameManager : MonoBehaviour
         OpenConnection();
 
         mainCamera = Camera.main.GetComponent<cameraZoom>();
-        targetPosition = new Vector3();        
+        targetPosition = new Vector3();
 
         StartCoroutine(PlayerFlight());
         spawner = StartCoroutine(SpawnEnemies());
+        StartCoroutine(SpawnClouds());
     }
 
     void OpenConnection()
@@ -130,6 +133,18 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(spawnTime);
         }
     }
+    IEnumerator SpawnClouds()
+    {
+        while (true)
+        {
+            GameObject cld = cloud;
+            cld.GetComponent<SpriteRenderer>().sortingOrder = -1000;
+            cld.transform.position = new Vector3(cld.transform.position.x, UnityEngine.Random.Range(2.5f, 4f));
+            Instantiate(cld);
+
+            yield return new WaitForSecondsRealtime(UnityEngine.Random.Range(.3f, 2.5f));
+        }
+    }
     public void IncrementScore()
     {
         currentScore++;
@@ -137,11 +152,12 @@ public class GameManager : MonoBehaviour
     }
 
     public void GameOver()
-    {
-        stream.WriteLine("L1");
+    {        
         StopCoroutine(spawner);
-        StopCoroutine(bonusBlinker);
+        if(blinking)
+            StopCoroutine(bonusBlinker);
         bonusTxt.SetActive(false);
+        stream.WriteLine("L1");
 
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("enemy");
         foreach (GameObject enemy in enemies)
@@ -193,11 +209,13 @@ public class GameManager : MonoBehaviour
 
     IEnumerator BlinkBonusTxt()
     {
+        blinking = true;
         while(true)
         {
             bonusTxt.SetActive(!bonusTxt.activeSelf);
             yield return new WaitForSecondsRealtime(.5f);
         }
+        blinking = false;
     }
 
     public void SetGameSpeed(float speed)
